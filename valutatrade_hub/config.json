@@ -1,0 +1,6 @@
+{
+  "data_path": "D:/vs/homeworks/project3_Shevchenko_Sergey/data/",
+  "RATES_TTL_SECONDS": 300,
+  "default_base_currency": "USD",
+  "log_path": "logs/actions.log"
+}

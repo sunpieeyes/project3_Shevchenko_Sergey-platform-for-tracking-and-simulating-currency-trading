@@ -1,15 +1,11 @@
-# Здесь будут функции для работы с JSON, валидации и т.д.
+from valutatrade_hub.core.currencies import get_currency, Currency
+from valutatrade_hub.core.exceptions import CurrencyNotFoundError
 
-def load_json(path: str):
-    import json
+def validate_currency_code(code: str) -> Currency:
     try:
-        with open(path, "r", encoding="utf8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return None
+        return get_currency(code)
+    except CurrencyNotFoundError as e:
+        raise e
 
-
-def save_json(path: str, data):
-    import json
-    with open(path, "w", encoding="utf8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+def convert_amount(amount: float, rate: float) -> float:
+    return amount * rate
