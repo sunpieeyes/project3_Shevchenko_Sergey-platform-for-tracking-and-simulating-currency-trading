@@ -1,37 +1,71 @@
+import os
 import json
-from pathlib import Path
-from threading import Lock
+
 
 class SettingsLoader:
+    
     _instance = None
-    _lock = Lock()
-
-    def __new__(cls, *args, **kwargs):
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super().__new__(cls)
-                cls._instance._initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
         return cls._instance
-
-    def __init__(self, config_path: str = None):
-        if getattr(self, "_initialized", False):
-            return
-        self._initialized = True
-        self.config_path = Path(config_path or "valutatrade_hub/config.json")
-        self._data = {}
-        self.reload()
-
+    
+    def __init__(self):
+        if not self._initialized:
+            self._config = {}
+            self._load_config()
+            self._initialized = True
+    
+    def _load_config(self):
+        """Загружает конфигурацию."""
+        self._config = {
+            'data_dir': 'data',
+            'rates_ttl_seconds': 300,  
+            'default_base_currency': 'USD',
+            'log_file': 'logs/app.log',
+            'log_level': 'INFO',
+            
+            
+            'exchange_rate_api_key': os.getenv('EXCHANGE_RATE_API_KEY', 'demo_key'),
+            'coingecko_api_key': os.getenv('COINGECKO_API_KEY', ''),
+            
+            
+            'users_file': 'data/users.json',
+            'portfolios_file': 'data/portfolios.json',
+            'rates_file': 'data/rates.json',
+            'session_file': 'data/session.json'
+        }
+        
+        config_file = 'config.json'
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r') as f:
+                    file_config = json.load(f)
+                self._config.update(file_config)
+            except Exception:
+                pass
+    
+    def get(self, key, default=None):
+        """Получает значение настройки."""
+        return self._config.get(key, default)
+    
     def reload(self):
-        if self.config_path.exists():
-            with self.config_path.open("r", encoding="utf-8") as f:
-                self._data = json.load(f)
-        else:
-            self._data = {
-                "data_path": "data/",
-                "RATES_TTL_SECONDS": 300,
-                "default_base_currency": "USD",
-                "log_path": "logs/actions.log"
-            }
+        """Перезагружает конфигурацию."""
+        self._load_config()
+    
+    def get_rates_ttl(self):
+        """Возвращает TTL для курсов в секундах."""
+        return self.get('rates_ttl_seconds', 300)
+    
+    def get_data_dir(self):
+        """Возвращает директорию с данными."""
+        return self.get('data_dir', 'data')
+    
+    def get_default_base_currency(self):
+        """Возвращает базовую валюту по умолчанию."""
+        return self.get('default_base_currency', 'USD')
 
-    def get(self, key: str, default=None):
-        return self._data.get(key, default)
+
+settings = SettingsLoader()

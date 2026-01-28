@@ -1,9 +1,9 @@
 [tool.poetry]
-name = "project3_Shevchenko_Sergey"
+name = "finalproject_shevchenko"
 version = "0.1.0"
 description = "ValutaTrade Hub — учебная CLI-платформа для симуляции торговли валютами"
 authors = ["Шевченко Сергей <revaginiti@gmail.com>"]
-packages = [{ include = "project3_Shevchenko_Sergey" }]
+packages = [{ include = "valutatrade_hub" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -13,7 +13,7 @@ prettytable = "^3.8"
 ruff = "^0.12"
 
 [tool.poetry.scripts]
-project = "project3_Shevchenko_Sergey.main:main"
+project = "main:main"
 
 [build-system]
 requires = ["poetry-core"]

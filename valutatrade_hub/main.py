@@ -1,9 +1,5 @@
-﻿import sys
-from valutatrade_hub.cli.interface import cli_entrypoint
+﻿#!/usr/bin/env python3
+from valutatrade_hub.cli.interface import main
 
-def main(argv: list[str] | None = None) -> None:
-    # если аргументы не переданы — берём из командной строки
-    cli_entrypoint(argv or sys.argv[1:])
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

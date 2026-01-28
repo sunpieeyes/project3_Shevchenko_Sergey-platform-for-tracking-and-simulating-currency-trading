@@ -1,50 +1,54 @@
-class UserExistsError(Exception):
-    """Пользователь уже существует."""
-    pass
+class MyError(Exception):
+    """Базовая ошибка приложения."""
 
 
-class UserNotFoundError(Exception):
-    """Пользователь не найден."""
-    pass
-
-
-class AuthenticationError(Exception):
-    """Ошибка аутентификации."""
-    pass
-
-
-class InsufficientFundsError(Exception):
-    """Недостаточно средств на кошельке."""
-    def __init__(self, code: str, available: float, required: float):
-        self.code = code
-        self.available = available
-        self.required = required
-        message = (
-            f"Недостаточно средств: доступно {available} {code}, "
-            f"требуется {required} {code}"
-        )
-        super().__init__(message)
-
-
-class CurrencyNotSupportedError(Exception):
-    """Операция недоступна для данной валюты."""
-    pass
-
-
-class RateNotAvailableError(Exception):
-    """Курс валюты временно недоступен."""
-    pass
-
-
-class CurrencyNotFoundError(Exception):
-    """Валюта не найдена."""
+class CurrencyNotFoundError(MyError):
+    """Неизвестная валюта."""
     def __init__(self, code: str):
-        self.code = code
         super().__init__(f"Неизвестная валюта '{code}'")
 
 
-class ApiRequestError(Exception):
-    """Ошибка при обращении к внешнему API."""
+class ApiRequestError(MyError):
+    """Сбой внешнего API / недоступен источник курсов."""
     def __init__(self, reason: str):
-        self.reason = reason
         super().__init__(f"Ошибка при обращении к внешнему API: {reason}")
+
+
+class InsufficientFundsError(MyError):
+    """Недостаточно средств."""
+    def __init__(self, available: float, required: float, code: str):
+        super().__init__(
+            f"Недостаточно средств: доступно {available} {code}, требуется {required} {code}"
+        )
+
+
+class NotEnoughMoneyError(InsufficientFundsError):
+    """Старое имя ошибки (алиас)."""
+    def __init__(self, have, need, currency):
+        super().__init__(available=have, required=need, code=currency)
+
+
+class BadCurrencyError(CurrencyNotFoundError):
+    """Старое имя ошибки (алиас)."""
+    def __init__(self, code: str):
+        super().__init__(code)
+
+
+class UserNotFoundError(MyError):
+    def __init__(self, username: str):
+        super().__init__(f"Пользователь '{username}' не найден")
+
+
+class WrongPasswordError(MyError):
+    def __init__(self):
+        super().__init__("Неверный пароль")
+
+
+class NotLoggedInError(MyError):
+    def __init__(self, msg: str = "Сначала выполните login"):
+        super().__init__(msg)
+
+
+class BadAmountError(MyError):
+    def __init__(self, msg: str = "'amount' должен быть положительным числом"):
+        super().__init__(msg)

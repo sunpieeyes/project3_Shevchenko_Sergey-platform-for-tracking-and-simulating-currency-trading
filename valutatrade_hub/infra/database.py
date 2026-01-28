@@ -1,52 +1,84 @@
-import json
-from pathlib import Path
+from .settings import SettingsLoader
 
-class DatabaseManager:
-    _instance = None
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
-    def __init__(self):
-        self.data_path = Path("data")
-        self.users_file = self.data_path / "users.json"
-        self.portfolios_file = self.data_path / "portfolios.json"
-        self.rates_file = self.data_path / "rates.json"
+class Database:
+    def __init__(self, data_folder: str = "data"):
+        self.data_folder = data_folder
+        self.settings = SettingsLoader()
 
-    def _read_json(self, path):
-        if path.exists():
-            with path.open("r", encoding="utf-8") as f:
-                return json.load(f)
-        return []
-
-    def _write_json(self, path, data):
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-
+    
+    
+    def get_all_users(self):
+        """Получает всех пользователей."""
+        from ..core.utils import load_json
+        return load_json(f"{self.data_folder}/users.json")
+    
+    def save_users(self, users):
+        """Сохраняет пользователей."""
+        from ..core.utils import save_json
+        return save_json(f"{self.data_folder}/users.json", users)
+    
+    def find_user(self, username):
+        """Ищет пользователя по имени."""
+        users = self.get_all_users()
+        for user in users:
+            if user.get('username') == username:
+                return user
+        return None
+    
+    def add_user(self, user_data):
+        """Добавляет нового пользователя."""
+        users = self.get_all_users()
+        users.append(user_data)
+        return self.save_users(users)
+    
+    # === Портфели ===
+    
+    def get_all_portfolios(self):
+        """Получает все портфели."""
+        from ..core.utils import load_json
+        return load_json(f"{self.data_folder}/portfolios.json")
+    
+    def save_portfolios(self, portfolios):
+        """Сохраняет портфели."""
+        from ..core.utils import save_json
+        return save_json(f"{self.data_folder}/portfolios.json", portfolios)
+    
     def get_portfolio(self, user_id):
-        portfolios = self._read_json(self.portfolios_file)
-        for p in portfolios:
-            if p["user_id"] == user_id:
-                return {k: Wallet(v["currency_code"], v["balance"]) for k, v in p["wallets"].items()}
-        return {}
-
-    def save_portfolio(self, user_id, wallets):
-        portfolios = self._read_json(self.portfolios_file)
-        for p in portfolios:
-            if p["user_id"] == user_id:
-                p["wallets"] = {k: {"currency_code": v.currency_code, "balance": v.balance} for k, v in wallets.items()}
-                self._write_json(self.portfolios_file, portfolios)
-                return
-        # Если портфеля нет — добавляем
-        portfolios.append({
-            "user_id": user_id,
-            "wallets": {k: {"currency_code": v.currency_code, "balance": v.balance} for k, v in wallets.items()}
-        })
-        self._write_json(self.portfolios_file, portfolios)
-
-    def get_rate(self, from_code, to_code):
-        rates = self._read_json(self.rates_file)
-        key = f"{from_code}_{to_code}"
-        return rates.get(key, {"rate": 1.0, "updated_at": None})
+        """Получает портфель пользователя."""
+        portfolios = self.get_all_portfolios()
+        for port in portfolios:
+            if port.get('user_id') == user_id:
+                return port
+        return None
+    
+    def save_portfolio(self, portfolio_data):
+        """Сохраняет или обновляет портфель."""
+        portfolios = self.get_all_portfolios()
+        user_id = portfolio_data['user_id']
+        
+        # Ищем старый портфель
+        found = False
+        for i, port in enumerate(portfolios):
+            if port.get('user_id') == user_id:
+                portfolios[i] = portfolio_data
+                found = True
+                break
+        
+        if not found:
+            portfolios.append(portfolio_data)
+        
+        return self.save_portfolios(portfolios)
+    
+    # === Курсы ===
+    
+    def get_rates(self):
+        """Получает курсы валют."""
+        from ..core.utils import load_json
+        return load_json(f"{self.data_folder}/rates.json")
+    
+    def save_rates(self, rates):
+        """Сохраняет курсы."""
+        from ..core.utils import save_json
+        return save_json(f"{self.data_folder}/rates.json", rates)

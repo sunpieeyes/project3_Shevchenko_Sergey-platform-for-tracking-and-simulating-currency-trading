@@ -1,100 +1,186 @@
-from datetime import datetime
-import hashlib
-from typing import Dict
-from valutatrade_hub.core.exceptions import InsufficientFundsError
-
 class User:
-    def __init__(self, user_id: int, username: str, password: str, salt: str = None, registration_date: str = None):
+    """Пользователь системы."""
+    
+    def __init__(self, user_id, username, hashed_password, salt, reg_date=None):
         self._user_id = user_id
         self._username = username
-        self._salt = salt or self._generate_salt()
-        self._hashed_password = self._hash_password(password, self._salt)
-        self._registration_date = registration_date or datetime.utcnow().isoformat()
-
-    @staticmethod
-    def _generate_salt() -> str:
-        import secrets
-        return secrets.token_hex(8)
-
-    @staticmethod
-    def _hash_password(password: str, salt: str) -> str:
-        return hashlib.sha256((password + salt).encode("utf-8")).hexdigest()
-
-    def verify_password(self, password: str) -> bool:
-        return self._hash_password(password, self._salt) == self._hashed_password
-
-    def change_password(self, new_password: str):
-        if len(new_password) < 4:
-            raise ValueError("Пароль должен быть не короче 4 символов")
-        self._hashed_password = self._hash_password(new_password, self._salt)
-
-    def get_user_info(self) -> Dict:
-        return {
-            "user_id": self._user_id,
-            "username": self._username,
-            "registration_date": self._registration_date
-        }
-
-    @property
-    def username(self):
-        return self._username
-
+        self._hashed_password = hashed_password
+        self._salt = salt
+        self._reg_date = reg_date
+    
     @property
     def user_id(self):
         return self._user_id
+    
+    @property
+    def username(self):
+        return self._username
+    
+    @username.setter
+    def username(self, value):
+        if not value:
+            raise ValueError("Имя не может быть пустым")
+        self._username = value
+    
+    @property
+    def password_hash(self):
+        return self._hashed_password
+    
+    @property
+    def salt(self):
+        return self._salt
+    
+    def get_info(self):
+        """Возвращает информацию о пользователе."""
+        return {
+            'id': self.user_id,
+            'name': self.username,
+            'registered': self._reg_date
+        }
+    
+    def change_password(self, new_password):
+        """Меняет пароль."""
+        if len(new_password) < 4:
+            raise ValueError("Пароль слишком короткий")
+        
+        from .utils import hash_password
+        self._hashed_password, self._salt = hash_password(new_password)
+    
+    def check_password(self, password):
+        """Проверяет пароль."""
+        from .utils import verify_password
+        return verify_password(password, self.password_hash, self.salt)
+    
+    def to_dict(self):
+        """Преобразует в словарь для сохранения."""
+        return {
+            'user_id': self.user_id,
+            'username': self.username,
+            'hashed_password': self.password_hash,
+            'salt': self.salt,
+            'registration_date': self._reg_date
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        """Создает из словаря."""
+        return cls(
+            data['user_id'],
+            data['username'],
+            data['hashed_password'],
+            data['salt'],
+            data.get('registration_date')
+        )
 
 
 class Wallet:
-    def __init__(self, currency_code: str, balance: float = 0.0):
-        self.currency_code = currency_code.upper()
+    """Кошелек для одной валюты."""
+    
+    def __init__(self, currency, balance=0.0):
+        self.currency = currency.upper()
         self._balance = float(balance)
-
+    
     @property
     def balance(self):
         return self._balance
-
+    
     @balance.setter
     def balance(self, value):
-        if not isinstance(value, (int, float)) or value < 0:
-            raise ValueError("Баланс должен быть положительным числом")
-        self._balance = float(value)
-
-    def deposit(self, amount: float):
+        value = float(value)
+        if value < 0:
+            raise ValueError("Баланс не может быть отрицательным")
+        self._balance = value
+    
+    def add_money(self, amount):
+        """Добавляет деньги."""
         if amount <= 0:
-            raise ValueError("'amount' должен быть положительным числом")
-        self._balance += amount
-
-    def withdraw(self, amount: float):
+            raise ValueError("Сумма должна быть положительной")
+        self.balance += float(amount)
+    
+    def take_money(self, amount):
+        """Снимает деньги."""
         if amount <= 0:
-            raise ValueError("'amount' должен быть положительным числом")
-        if amount > self._balance:
-            raise InsufficientFundsError(self._balance, amount, self.currency_code)
-        self._balance -= amount
-
-    def get_balance_info(self):
-        return f"{self.currency_code}: {self._balance:.4f}"
+            raise ValueError("Сумма должна быть положительной")
+        if amount > self.balance:
+            from .exceptions import InsufficientFundsError
+            raise InsufficientFundsError(self.balance, amount, self.currency)
+        self.balance -= float(amount)
+    
+    def get_info(self):
+        """Информация о кошельке."""
+        return {
+            'currency': self.currency,
+            'balance': self.balance
+        }
+    
+    def to_dict(self):
+        """Для сохранения в JSON."""
+        return {
+            'currency_code': self.currency,
+            'balance': self.balance
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        """Создает из словаря."""
+        return cls(data['currency_code'], data['balance'])
 
 
 class Portfolio:
-    def __init__(self, user_id: int, wallets: Dict[str, Wallet] = None):
-        self._user_id = user_id
-        self._wallets: Dict[str, Wallet] = wallets or {}
-
-    def add_currency(self, currency_code: str):
-        currency_code = currency_code.upper()
-        if currency_code not in self._wallets:
-            self._wallets[currency_code] = Wallet(currency_code)
-
-    def get_wallet(self, currency_code: str) -> Wallet:
-        currency_code = currency_code.upper()
-        return self._wallets.get(currency_code)
-
-    def wallets(self):
-        return dict(self._wallets)
-
-    def get_total_value(self, exchange_rates: dict, base_currency='USD'):
+    """Портфель пользователя."""
+    
+    def __init__(self, user_id, wallets=None):
+        self.user_id = user_id
+        self.wallets = wallets or {} 
+    
+    def add_wallet(self, currency):
+        """Добавляет новый кошелек."""
+        currency = currency.upper()
+        if currency not in self.wallets:
+            self.wallets[currency] = Wallet(currency)
+        return self.wallets[currency]
+    
+    def get_wallet(self, currency):
+        """Получает кошелек."""
+        currency = currency.upper()
+        return self.wallets.get(currency)
+    
+    def get_total_value(self, base='USD'):
+        """Считает общую стоимость."""
+        rates = {
+            'USD': 1.0,
+            'EUR': 1.08,
+            'BTC': 50000.0,
+            'ETH': 3000.0,
+            'RUB': 0.011
+        }
+        
         total = 0.0
-        for code, wallet in self._wallets.items():
-            rate = exchange_rates.get(f"{code}_{base_currency}", 1.0)
-            total += wallet.balance * rate
+        
+        for currency, wallet in self.wallets.items():
+            if currency == base:
+                total += wallet.balance
+            else:
+                rate_to_usd = rates.get(currency, 1.0)
+                rate_usd_to_base = 1.0 / rates.get(base, 1.0)
+                total += wallet.balance * rate_to_usd * rate_usd_to_base
+        
         return total
+    
+    def to_dict(self):
+        """Для сохранения."""
+        return {
+            'user_id': self.user_id,
+            'wallets': {
+                code: wallet.to_dict()
+                for code, wallet in self.wallets.items()
+            }
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        """Создает из словаря."""
+        wallets = {}
+        for code, wallet_data in data.get('wallets', {}).items():
+            wallets[code] = Wallet.from_dict(wallet_data)
+        return cls(data['user_id'], wallets)

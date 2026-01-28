@@ -1,32 +1,31 @@
-# Python
+
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 *.pyc
 
-# Virtual environments
 .venv/
 env/
 venv/
 
-# Distribution / packaging
 dist/
 build/
 *.egg-info/
 
-# Poetry
 .poetry/
-poetry.lock
 
-# VS Code
 .vscode/
 
-# Logs and temporary files
 *.log
 *.tmp
 *.bak
 
-# OS-specific
 .DS_Store
 Thumbs.db
+
+data/session.json
+data/rates.json
+data/exchange_rates.json
+
+logs/
