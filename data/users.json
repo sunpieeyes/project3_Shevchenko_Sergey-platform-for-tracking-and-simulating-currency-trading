@@ -12,5 +12,12 @@
     "hashed_password": "ca2fd97fc7c6d823f837dd07d563c9e778124cec6c4c168eff66f5d7953f6c6c",
     "salt": "971a6b68",
     "registration_date": "2026-01-28T11:17:48.203403+00:00"
+  },
+  {
+    "user_id": 3,
+    "username": "alicek",
+    "hashed_password": "9f2c576dff091f44e99b53c963367beb060d7f7427ce06286fab1129a3be18cc",
+    "salt": "7d000efb",
+    "registration_date": "2026-01-28T12:26:56.330575+00:00"
   }
 ]

@@ -6,6 +6,8 @@ from .utils import hash_password, get_next_id, get_current_time
 from .session import session
 from ..infra.database import Database
 from datetime import datetime, timezone
+from .exceptions import MyError
+
 
 
 class AppLogic:
@@ -52,12 +54,13 @@ class AppLogic:
     def register(self, username, password):
         """Регистрирует нового пользователя."""
         if not username:
-            raise ValueError("Нужно указать имя")
+            raise MyError("Нужно указать имя")
         if len(password) < 4:
-            raise ValueError("Пароль должен быть от 4 символов")
+            raise MyError("Пароль должен быть от 4 символов")
         
         if self.db.find_user(username):
-            raise ValueError(f"Имя '{username}' уже занято")
+            from .exceptions import MyError
+            raise MyError(f"Имя '{username}' уже занято")
         
         users = self.db.get_all_users()
         new_id = get_next_id(users)
